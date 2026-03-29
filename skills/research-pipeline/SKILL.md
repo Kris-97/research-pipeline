@@ -230,7 +230,7 @@ This fast path avoids the overhead of the full pipeline for questions that don't
    ```
    Agent(
      subagent_type: "general-purpose",
-     prompt: "[Read and include full content of agents/research-reporter.md]\n\nRead .research/PROJECT.md, .research/ANALYSIS.md{, .research/PE-LENS.md if exists}.\nRead references/report-templates.md for the template.\nRead references/quality-checklist.md and verify before finishing.\n\nDepth: {depth}\nType: {type}\n\n{if deep: Write .research/REPORT.md AND .research/DATA-PACK.md}\n{if medium: Write .research/REPORT.md only}\n{if shallow: Return inline answer — should not reach here}",
+     prompt: "[Read and include full content of agents/research-reporter.md]\n\nRead .research/PROJECT.md, .research/ANALYSIS.md{, .research/PE-LENS.md if exists}.\nRead ~/.claude/plugins/research-pipeline/skills/research-pipeline/references/report-templates.md for the template.\nRead ~/.claude/plugins/research-pipeline/skills/research-pipeline/references/quality-checklist.md and verify before finishing.\n\nDepth: {depth}\nType: {type}\n\n{if deep: Write .research/REPORT.md AND .research/DATA-PACK.md}\n{if medium: Write .research/REPORT.md only}\n{if shallow: Return inline answer — should not reach here}",
      name: "reporter"
    )
    ```
