@@ -48,7 +48,7 @@ This fast path avoids the overhead of the full pipeline for questions that don't
 
 1. **Classify the question** — determine type and depth using `references/type-profiles.md` rules.
 
-2. **If shallow/personal**: Execute the Shallow Fast Path above. Stop here — do not proceed to further phases.
+2. **If shallow/personal**: Execute the Shallow Fast Path above. No `.research/` directory created, no files, no agents. Stop here — do not proceed to further phases.
 
 3. **For medium/deep questions**, dispatch `research-intake` agent:
    ```
@@ -60,7 +60,7 @@ This fast path avoids the overhead of the full pipeline for questions that don't
    ```
    The intake agent returns: TYPE, DEPTH, refined QUESTION, ENTITIES, SOURCE PLAN, CONSTRAINTS.
 
-3. **Create `.research/` directory** and write `.research/PROJECT.md`:
+4. **Create `.research/` directory** and write `.research/PROJECT.md`:
    ```markdown
    # Research: {title}
 
@@ -86,9 +86,9 @@ This fast path avoids the overhead of the full pipeline for questions that don't
    - {constraints}
    ```
 
-4. **Gate 0** (deep only):
+5. **Gate 0** (deep only):
    ```
-   ╔═════���════════════════════════════════════════╗
+   ╔══════════════════════════════════════════════╗
    ║  RESEARCH GATE 0: Research Plan             ║
    ╠══════════════════════════════════════════════╣
    ║  Question: {refined question}               ║
@@ -439,6 +439,24 @@ When user invokes `/research resume`:
    - If between phases: start next phase
    - If at a gate: re-present the gate
    - Source files that completed successfully are NOT re-fetched
+
+---
+
+## Status Protocol
+
+When user invokes `/research status`:
+
+1. Check if `.research/STATE.md` exists. If not: "No active research."
+2. Read `.research/STATE.md` and `.research/PROJECT.md`
+3. Present status:
+   ```
+   Research: "{question}"
+   Type: {type} | Depth: {depth}
+   Phase: {current phase}
+   Sources: {completed}/{total} ({list with status})
+   Started: {timestamp}
+   ```
+4. Do NOT advance the research — status is read-only.
 
 ---
 

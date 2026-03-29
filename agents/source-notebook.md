@@ -20,20 +20,19 @@ NEVER call scripts directly.
 
 1. **Check auth status**:
    ```bash
-   cd ~/.claude/skills/notebooklm
-   python scripts/run.py auth_manager.py status
+   cd ~/.claude/skills/notebooklm && python scripts/run.py auth_manager.py status
    ```
    If expired: report FAILED with "NotebookLM auth expired. User needs to reauth." and stop.
 
 2. **Search library for relevant notebooks**:
    ```bash
-   python scripts/run.py notebook_manager.py search --query "{research topic}"
+   cd ~/.claude/skills/notebooklm && python scripts/run.py notebook_manager.py search --query "{research topic}"
    ```
    If no relevant notebooks found: report COMPLETE with zero findings.
 
 3. **Query each relevant notebook**: For each matching notebook, ask 1-3 targeted questions:
    ```bash
-   python scripts/run.py ask_question.py --question "{question}" --notebook-url "{url}"
+   cd ~/.claude/skills/notebooklm && python scripts/run.py ask_question.py --question "{question}" --notebook-url "{url}"
    ```
 
 4. **Follow-up protocol**: After each answer, assess if the information is complete:

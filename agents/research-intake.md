@@ -49,8 +49,7 @@ ENTITIES:
 - {entity 2} ...
 
 SOURCE PLAN:
-- web-search: REQUIRED | queries: ["q1", "q2", "q3"]
-- web-fetch: REQUIRED/OPTIONAL/SKIP
+- web: REQUIRED | queries: ["q1", "q2", "q3"] (includes both WebSearch and WebFetch)
 - youtube: REQUIRED/OPTIONAL/SKIP | queries: ["q1", "q2"]
 - notebooklm: REQUIRED/OPTIONAL/SKIP | notebooks: [{name, questions}]
 - supabase: REQUIRED/OPTIONAL/SKIP | query strategy: {description}

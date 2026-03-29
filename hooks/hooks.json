@@ -1,0 +1,16 @@
+{
+  "description": "Research Pipeline: session lifecycle hooks",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if a .research/ directory exists in the current working directory with a STATE.md file. If it exists, read STATE.md and check if the phase is NOT 'complete'. If research is still in progress, remind the user: 'You have an active research session. Use /research resume to continue next time.' If no .research/ directory exists or research is complete, respond 'OK'."
+          }
+        ]
+      }
+    ]
+  }
+}
