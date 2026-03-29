@@ -1,0 +1,17 @@
+{
+  "name": "research-pipeline",
+  "version": "1.0.0",
+  "description": "Universal research workflow: multi-source data gathering, synthesis, and structured reporting for PE/investment, business ideation, and general research",
+  "author": {
+    "name": "Kristian Metsamaki"
+  },
+  "keywords": [
+    "research",
+    "pipeline",
+    "multi-source",
+    "synthesis",
+    "PE",
+    "investment",
+    "analysis"
+  ]
+}
