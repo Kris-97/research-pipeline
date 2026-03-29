@@ -110,6 +110,13 @@ This fast path avoids the overhead of the full pipeline for questions that don't
 
 **Goal**: Collect data from all planned sources in parallel.
 
+### Execution Mode Selection
+
+| Depth | Sources | Mode | Why |
+|-------|---------|------|-----|
+| medium | 3-4 | **Solo** | Plain parallel Agent calls, fast, no coordination overhead |
+| deep | 4+ | **Team** | Full launch-team pattern — cross-source messaging, shared task list |
+
 ### Steps
 
 1. **Initialize `.research/STATE.md`**:
@@ -133,51 +140,156 @@ This fast path avoids the overhead of the full pipeline for questions that don't
 
 2. **Create `.research/sources/` directory**.
 
-3. **Dispatch source agents in parallel**. For each source in the plan:
+3. **Dispatch source agents** — method depends on depth:
 
-   **Web** (if planned):
-   ```
-   Agent(
-     subagent_type: "general-purpose",
-     prompt: "[Read and include full content of agents/source-web.md]\n\nResearch question: {question}\nEntities: {entities}\nSearch queries: {from intake plan}\n\nWrite findings to .research/sources/web.md",
-     run_in_background: true,
-     name: "source-web"
-   )
-   ```
+### Medium Depth: Solo Mode (plain parallel agents)
 
-   **Video** (if planned):
-   ```
-   Agent(
-     subagent_type: "general-purpose",
-     prompt: "[Read and include full content of agents/source-video.md]\n\nResearch question: {question}\nSearch queries: {from intake plan}\nSpecific URLs: {if any}\n\nWrite findings to .research/sources/video.md",
-     run_in_background: true,
-     name: "source-video"
-   )
-   ```
+Dispatch each source agent with `run_in_background: true`, all in one turn:
 
-   **NotebookLM** (if planned):
-   ```
-   Agent(
-     subagent_type: "general-purpose",
-     prompt: "[Read and include full content of agents/source-notebook.md]\n\nResearch question: {question}\nNotebooks to query: {from intake plan}\nQuestions: {from intake plan}\n\nWrite findings to .research/sources/notebooklm.md",
-     run_in_background: true,
-     name: "source-notebook"
-   )
-   ```
+```
+Agent(
+  prompt: "[Read and include full content of agents/source-web.md]\n\nResearch question: {question}\nEntities: {entities}\nSearch queries: {from intake plan}\n\nWrite findings to .research/sources/web.md",
+  run_in_background: true,
+  name: "source-web"
+)
 
-   **Files/Data** (if planned):
-   ```
-   Agent(
-     subagent_type: "general-purpose",
-     prompt: "[Read and include full content of agents/source-files.md]\n\nResearch question: {question}\nExcel files: {paths}\nSupabase queries: {strategy}\nLocal files: {paths}\nObsidian search: {query}\n\nWrite findings to .research/sources/files.md",
-     run_in_background: true,
-     name: "source-files"
-   )
-   ```
+Agent(
+  prompt: "[Read and include full content of agents/source-video.md]\n\n...",
+  run_in_background: true,
+  name: "source-video"
+)
+```
+
+All agents run independently. No inter-agent messaging.
+
+### Deep Depth: Team Mode (launch-team pattern)
+
+Follow the **exact 4-step sequence** from the `launch-team` skill:
+
+**Step 1 — TeamCreate**:
+```
+TeamCreate(
+  team_name: "research-gather",
+  description: "Source gathering team for: {research question}"
+)
+```
+
+**Step 2 — TaskCreate** (one per source agent):
+```
+TaskCreate(subject: "Web research: {question}", description: "...", activeForm: "Searching the web")
+TaskCreate(subject: "Video research: {question}", description: "...", activeForm: "Fetching transcripts")
+TaskCreate(subject: "NotebookLM research: {question}", description: "...", activeForm: "Querying notebooks")
+TaskCreate(subject: "File/data research: {question}", description: "...", activeForm: "Reading data sources")
+```
+
+**Step 3 — Agent dispatch** (ALL in ONE turn, ALL in parallel):
+```
+Agent(
+  team_name: "research-gather",
+  name: "source-web",
+  prompt: "You are a teammate on the research-gather team. Your name is 'source-web'.
+    [Read and include full content of agents/source-web.md]
+
+    Research question: {question}
+    Entities: {entities}
+    Search queries: {from intake plan}
+
+    Write findings to .research/sources/web.md
+
+    ## Cross-Source Collaboration
+    When you find key entities (people, companies, specific data points) that
+    other sources could look up, send them via SendMessage:
+    - Send company names / person names to 'source-video' (for interview searches)
+    - Send specific claims to 'source-notebook' (for document verification)
+    - Send URLs of downloadable data to 'source-files'
+
+    ## When Done
+    - Mark your task as completed with TaskUpdate
+    - Send a 2-line summary of your top findings to the team lead",
+  run_in_background: true
+)
+
+Agent(
+  team_name: "research-gather",
+  name: "source-video",
+  prompt: "You are a teammate on the research-gather team. Your name is 'source-video'.
+    [Read and include full content of agents/source-video.md]
+
+    Research question: {question}
+    Search queries: {from intake plan}
+
+    Write findings to .research/sources/video.md
+
+    ## Cross-Source Collaboration
+    Watch for messages from 'source-web' with entity names — search for those too.
+    Send key quotes/claims to 'source-notebook' for verification.
+
+    ## When Done
+    - Mark your task as completed with TaskUpdate
+    - Send a 2-line summary to the team lead",
+  run_in_background: true
+)
+
+Agent(
+  team_name: "research-gather",
+  name: "source-notebook",
+  prompt: "You are a teammate on the research-gather team. Your name is 'source-notebook'.
+    [Read and include full content of agents/source-notebook.md]
+
+    Research question: {question}
+    Notebooks to query: {from intake plan}
+    Questions: {from intake plan}
+
+    Write findings to .research/sources/notebooklm.md
+
+    ## Cross-Source Collaboration
+    Watch for messages from teammates with claims to verify against your documents.
+    If you find data that contradicts web/video findings, note it prominently.
+
+    ## When Done
+    - Mark your task as completed with TaskUpdate
+    - Send a 2-line summary to the team lead",
+  run_in_background: true
+)
+
+Agent(
+  team_name: "research-gather",
+  name: "source-files",
+  prompt: "You are a teammate on the research-gather team. Your name is 'source-files'.
+    [Read and include full content of agents/source-files.md]
+
+    Research question: {question}
+    Excel files: {paths}
+    Supabase queries: {strategy}
+    Local files: {paths}
+    Obsidian search: {query}
+
+    Write findings to .research/sources/files.md
+
+    ## Cross-Source Collaboration
+    Watch for messages from 'source-web' with data references to look up.
+    Send financial data points to other teammates for cross-checking.
+
+    ## When Done
+    - Mark your task as completed with TaskUpdate
+    - Send a 2-line summary to the team lead",
+  run_in_background: true
+)
+```
+
+**Step 4 — TaskUpdate** (assign ownership):
+```
+TaskUpdate(taskId: "{web-task-id}", owner: "source-web", status: "in_progress")
+TaskUpdate(taskId: "{video-task-id}", owner: "source-video", status: "in_progress")
+TaskUpdate(taskId: "{notebook-task-id}", owner: "source-notebook", status: "in_progress")
+TaskUpdate(taskId: "{files-task-id}", owner: "source-files", status: "in_progress")
+```
+
+### After Dispatch (Both Modes)
 
 4. **Wait for all agents to complete**.
 
-5. **Check results**: Read each source file. Update STATE.md with status per source.
+5. **Check results**: Read each source file in `.research/sources/`. Update STATE.md with status per source.
 
 6. **Handle failures**:
    - Required source failed → retry once with adjusted queries
@@ -188,7 +300,9 @@ This fast path avoids the overhead of the full pipeline for questions that don't
      Options: [Retry with different queries] [Proceed with what we have] [Abort]
      ```
 
-7. **Note**: Shallow research never reaches this phase — it is handled entirely by the Shallow Fast Path in Phase 0.
+7. **Cleanup** (team mode only): `TeamDelete(team_name: "research-gather")`
+
+8. **Note**: Shallow research never reaches this phase — it is handled entirely by the Shallow Fast Path in Phase 0.
 
 ---
 
@@ -283,6 +397,7 @@ Before doing something yourself, check if an existing skill handles it:
 
 | Situation | Delegate To |
 |-----------|------------|
+| Deep research gather (4+ sources) | `launch-team` pattern: TeamCreate → TaskCreate → Agent(team_name=...) |
 | NotebookLM queries | NotebookLM skill at `~/.claude/skills/notebooklm/` via agent |
 | YouTube transcripts (fast) | `mcp__youtube-transcript__get-transcript` tool |
 | YouTube transcripts (batch/search) | Apify flow from youtube-research skill |
